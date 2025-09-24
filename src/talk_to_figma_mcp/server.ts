@@ -992,6 +992,36 @@ server.tool(
   }
 );
 
+// Get Libraries Tool
+server.tool(
+  "get_libraries",
+  "Get all libraries available in the current Figma document, including organization shared libraries",
+  {},
+  async () => {
+    try {
+      const result = await sendCommandToFigma("get_libraries");
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result)
+          }
+        ]
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error getting libraries: ${error instanceof Error ? error.message : String(error)
+              }`,
+          },
+        ],
+      };
+    }
+  }
+);
+
 // Get Annotations Tool
 server.tool(
   "get_annotations",
@@ -2625,6 +2655,7 @@ type FigmaCommand =
   | "delete_multiple_nodes"
   | "get_styles"
   | "get_local_components"
+  | "get_libraries"
   | "create_component_instance"
   | "get_instance_overrides"
   | "set_instance_overrides"
@@ -2717,6 +2748,7 @@ type CommandParams = {
   };
   get_styles: Record<string, never>;
   get_local_components: Record<string, never>;
+  get_libraries: Record<string, never>;
   get_team_components: Record<string, never>;
   create_component_instance: {
     componentKey: string;

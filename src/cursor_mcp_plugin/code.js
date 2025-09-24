@@ -56,6 +56,9 @@ figma.showUI(__html__, { width: 350, height: 450 });
 // Plugin commands from UI
 figma.ui.onmessage = async (msg) => {
   switch (msg.type) {
+    case "test-method":
+      testButtonEvent(msg);
+      break;
     case "update-settings":
       updateSettings(msg);
       break;
@@ -143,10 +146,16 @@ async function handleCommand(command, params) {
       return await getStyles();
     case "get_local_components":
       return await getLocalComponents();
+      //添加自定义
+    case "get_libraries":
+      return await getLibraries();
+    case "test_button_event":
+        return await testButtonEvent(params);
     // case "get_team_components":
     //   return await getTeamComponents();
     case "create_component_instance":
       return await createComponentInstance(params);
+
     case "export_node_as_image":
       return await exportNodeAsImage(params);
     case "set_corner_radius":
@@ -1144,6 +1153,88 @@ async function getLocalComponents() {
   };
 }
 
+async function getLibraries() {
+  try {
+    // Get all available library variable collections using the new API
+    console.log("Getting library variable collections00000000000000000000000");
+
+    //获取组件集合
+    const libraryCollections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
+    console.log("Library collections00000000000000000000000:", libraryCollections);
+
+    // Get variables from each library collection
+    const allVariables = [];
+    for (const collection of libraryCollections) {
+      try {
+        const variables = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(collection.key);
+        allVariables.push({
+          collection: collection,
+          variables: variables
+        });
+      } catch (error) {
+        console.error(`Error getting variables for collection ${collection.name}:`, error);
+      }
+    }
+
+    // Process library data using the new API
+    const librariesData = [];
+    
+    // Process each library collection and its variables
+    allVariables.forEach(libraryData => {
+      const { collection, variables } = libraryData;
+      
+      // Group variables by type
+      const variablesByType = {
+        color: variables.filter(v => v.resolvedType === 'COLOR'),
+        number: variables.filter(v => v.resolvedType === 'FLOAT'),
+        string: variables.filter(v => v.resolvedType === 'STRING'),
+        boolean: variables.filter(v => v.resolvedType === 'BOOLEAN')
+      };
+      
+      librariesData.push({
+        name: collection.name,
+        key: collection.key,
+        id: collection.id,
+        description: collection.description || '',
+        variableCollectionId: collection.variableCollectionId,
+        totalVariables: variables.length,
+        variables: variablesByType,
+        // Note: Component and style data is no longer available through teamLibrary API
+        components: [],
+        paintStyles: [],
+        textStyles: [],
+        effectStyles: []
+      });
+    });
+
+    console.log('Libraries data:', librariesData);
+    
+    // Calculate totals
+    const totalVariables = allVariables.reduce((sum, lib) => sum + lib.variables.length, 0);
+
+    return {
+      success: true,
+      totalLibraries: librariesData.length,
+      totalVariableCollections: libraryCollections.length,
+      totalVariables: totalVariables,
+      totalComponents: 0, // No longer available through teamLibrary API
+      totalPaintStyles: 0, // No longer available through teamLibrary API
+      totalTextStyles: 0, // No longer available through teamLibrary API
+      totalEffectStyles: 0, // No longer available through teamLibrary API
+      libraries: librariesData,
+      note: "Figma teamLibrary API now focuses on variables. Components and styles are no longer accessible through this API."
+    };
+
+  } catch (error) {
+    console.error('Error getting libraries:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to get libraries',
+      libraries: []
+    };
+  }
+}
+
 // async function getTeamComponents() {
 //   try {
 //     const teamComponents =
@@ -1163,7 +1254,52 @@ async function getLocalComponents() {
 //   }
 // }
 
+async function testButtonEvent(params) {
+  console.log("testButtonEvent:00000000000000", params);
+ 
+    //  const component = await figma.importComponentByKeyAsync("6529ec229f0d87080dc1070b4330e511be8b4575");
+    //  console.log("添加的组件key:00000000000000", component); 
+
+
+  try 
+  {
+     const componentSet = await figma.importComponentSetByKeyAsync("6529ec229f0d87080dc1070b4330e511be8b4575");
+     console.log("添加的组件集00000000000000:", ( componentSet )); 
+
+    //打印集合的组件
+    //  for (const component of componentSet.children) {
+    //   console.log(`name:${component.name} key:${component.key}`);
+    //  } 
+
+     console.log("集合的组件defaultVariant:", componentSet.defaultVariant);
+     var componentSetCopy = componentSet.clone()
+
+     const page3 = await figma.getNodeByIdAsync("57:356");
+     if(!page3)
+     {
+        throw new Error("Page3 not found");
+     }
+     //这样就能插入一个组件集到page3中
+     const instance = componentSetCopy.defaultVariant;
+     instance.x = 10;
+     instance.y = 20;
+    //  console.log(figma.currentPage.current)
+     figma.currentPage.appendChild(instance);
+
+
+     //in appendChild: Cannot move node. Node is an internal, read-only node
+    // figma.currentPage.appendChild(component);
+
+  } catch (error) {
+    console.log("添加组件集合失败000000000000000000:", error);
+  }
+}
+
+
+
 async function createComponentInstance(params) {
+  console.log("createComponentInstance:00000000000000", params);
+
   const { componentKey, x = 0, y = 0 } = params || {};
 
   if (!componentKey) {
@@ -1171,11 +1307,19 @@ async function createComponentInstance(params) {
   }
 
   try {
+   
+    //这样可能会找不到公司的组件（Error creating component instance000000000000000000: Could not find a published component with the key "d2e2c21509b6cbf99b2152e08d38afa9ae1aec1a）
     const component = await figma.importComponentByKeyAsync(componentKey);
+    console.log("添加的组件key:00000000000000", componentKey);
     const instance = component.createInstance();
-
     instance.x = x;
     instance.y = y;
+    
+    //改成
+    // const componentSet = await figma.importComponentSetByKeyAsync(componentKey);
+    // const instance = componentSet.createInstance();
+    // instance.x = x;
+    // instance.y = y;
 
     figma.currentPage.appendChild(instance);
 
@@ -1189,6 +1333,7 @@ async function createComponentInstance(params) {
       componentId: instance.componentId,
     };
   } catch (error) {
+    console.log("添加组件失败000000000000000000:", error);
     throw new Error(`Error creating component instance: ${error.message}`);
   }
 }

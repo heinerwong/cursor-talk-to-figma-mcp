@@ -187,6 +187,7 @@ The MCP server provides the following tools for interacting with Figma:
 
 - `get_styles` - Get information about local styles
 - `get_local_components` - Get information about local components
+- `get_libraries` - Get all libraries available in the current Figma document, including organization shared libraries
 - `create_component_instance` - Create an instance of a component
 - `get_instance_overrides` - Extract override properties from a selected component instance
 - `set_instance_overrides` - Apply extracted overrides to target instances

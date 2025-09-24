@@ -214,6 +214,12 @@
             Disconnect
           </button>
         </div>
+
+        <div class="section">
+          <button id="btn-test" class="primary" >
+            测试一下
+          </button>
+        </div>
         
         <!-- Add Progress Bar Section -->
         <div id="progress-container" class="section hidden">
@@ -267,6 +273,7 @@
       const portInput = document.getElementById("port");
       const connectButton = document.getElementById("btn-connect");
       const disconnectButton = document.getElementById("btn-disconnect");
+      const testButton = document.getElementById("btn-test");
       const connectionStatus = document.getElementById("connection-status");
 
       // Tabs
@@ -555,6 +562,32 @@
         connectionStatus.className = "status info";
         disconnectFromServer();
       });
+
+      // Test button
+      testButton.addEventListener("click", () => {
+        parent.postMessage(
+              {
+                pluginMessage: {
+                  type: "test-method"
+                },
+              },
+              "*"
+            );
+      });
+
+      //test method
+      async function testMethod() {
+        try {
+          // 发送命令给plugin code，不能直接在UI中调用figma API
+          const result = await sendCommand("test_button_event", {
+            message: "Test Button",
+            componentKey: "6529ec229f0d87080dc1070b4330e511be8b4575"
+          });
+          console.log("Test result:", result);
+        } catch (error) {
+          console.error("Test error:", error);
+        }
+      }
 
       // Function to update progress UI
       function updateProgressUI(progressData) {
