@@ -1253,7 +1253,7 @@ async function getLibraries() {
 //     throw new Error(`Error getting team components: ${error.message}`);
 //   }
 // }
-
+//测试-插入组件集成功(组件集是同系列组件的集合)
 async function testButtonEvent(params) {
   console.log("testButtonEvent:00000000000000", params);
  
@@ -1263,6 +1263,7 @@ async function testButtonEvent(params) {
 
   try 
   {
+    //v-buttong
      const componentSet = await figma.importComponentSetByKeyAsync("6529ec229f0d87080dc1070b4330e511be8b4575");
      console.log("添加的组件集00000000000000:", ( componentSet )); 
 
@@ -1281,10 +1282,13 @@ async function testButtonEvent(params) {
      }
      //这样就能插入一个组件集到page3中
      const instance = componentSetCopy.defaultVariant;
-     instance.x = 10;
-     instance.y = 20;
-    //  console.log(figma.currentPage.current)
-     figma.currentPage.appendChild(instance);
+    //  instance.x = page3.x - 10
+    //  instance.y = page3.y - 200;
+     console.log(instance)
+    //这样组件加到page3下面，坐标原点是page3（page3是一个frame）
+     page3.appendChild(instance);
+     //这样组件加到currentPage下面，坐标原点是当前page 0 0
+    //  figma.currentPage.appendChild(instance);
 
 
      //in appendChild: Cannot move node. Node is an internal, read-only node
@@ -1293,6 +1297,11 @@ async function testButtonEvent(params) {
   } catch (error) {
     console.log("添加组件集合失败000000000000000000:", error);
   }
+}
+
+async function testButtonEvent2(params) {
+  console.log("testButtonEvent:00000000000000", params);
+
 }
 
 
