@@ -62,6 +62,7 @@ figma.ui.onmessage = async (msg) => {
     case "ai-generate-prototype":
       aiGeneratePrototype(msg);
       break;
+
     case "update-settings":
       updateSettings(msg);
       break;
@@ -1238,31 +1239,17 @@ async function getLibraries() {
   }
 }
 
-// async function getTeamComponents() {
-//   try {
-//     const teamComponents =
-//       await figma.teamLibrary.getAvailableComponentsAsync();
+//ai生成原型测试
+async function aiGeneratePrototype(params) {
+  console.log("aiGeneratePrototype:00000000000000", params);
+}
 
-//     return {
-//       count: teamComponents.length,
-//       components: teamComponents.map((component) => ({
-//         key: component.key,
-//         name: component.name,
-//         description: component.description,
-//         libraryName: component.libraryName,
-//       })),
-//     };
-//   } catch (error) {
-//     throw new Error(`Error getting team components: ${error.message}`);
-//   }
-// }
 //测试-插入组件集成功(组件集是同系列组件的集合)
 async function testButtonEvent(params) {
   console.log("testButtonEvent:00000000000000", params);
  
     //  const component = await figma.importComponentByKeyAsync("6529ec229f0d87080dc1070b4330e511be8b4575");
     //  console.log("添加的组件key:00000000000000", component); 
-
 
   try 
   {

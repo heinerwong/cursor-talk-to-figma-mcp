@@ -172,7 +172,7 @@
       }
       .temp-container
       {
-        display: none;
+        /* display: none; */
         
       }
     </style>
@@ -239,7 +239,7 @@
           <div style="display: block;">
             <textarea style="display: flex; gap: 8px" name="prompt" id="prompt" rows="8" cols="50"></textarea>
           </div>
-          <button id="btn-test" class="success" >
+          <button id="btn-ai-generate-protype" class="success" >
             AI生成原型
           </button>
         </div>
@@ -297,6 +297,7 @@
       const connectButton = document.getElementById("btn-connect");
       const disconnectButton = document.getElementById("btn-disconnect");
       const testButton = document.getElementById("btn-test");
+      const aiGeneratePrototypeButton= document.getElementById("btn-ai-generate-protype");
       const connectionStatus = document.getElementById("connection-status");
 
       // Tabs
@@ -588,14 +589,12 @@
 
       //测试 Test button
       testButton.addEventListener("click", () => {
-        parent.postMessage(
-              {
-                pluginMessage: {
-                  type: "test-method"
-                },
-              },
-              "*"
-            );
+        parent.postMessage( { pluginMessage: {type: "test-method" }, }, "*" );
+      });
+
+      //ai生成原型测试
+      aiGeneratePrototypeButton.addEventListener("click", () => {
+        parent.postMessage( { pluginMessage: {type: "ai-generate-prototype" }, }, "*" );
       });
 
       //test method
