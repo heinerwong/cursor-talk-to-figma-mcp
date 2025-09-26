@@ -231,6 +231,9 @@
             <button id="btn-test" class="primary" >
               测试一下
             </button>
+              <button id="btn-convert-to-html" class="primary" >
+                转换成Html代码
+            </button>
           </div>
         </div>
 
@@ -297,6 +300,7 @@
       const connectButton = document.getElementById("btn-connect");
       const disconnectButton = document.getElementById("btn-disconnect");
       const testButton = document.getElementById("btn-test");
+      const convertToHtmlButton = document.getElementById("btn-convert-to-html");
       const aiGeneratePrototypeButton= document.getElementById("btn-ai-generate-protype");
       const connectionStatus = document.getElementById("connection-status");
 
@@ -595,6 +599,11 @@
       //ai生成原型测试
       aiGeneratePrototypeButton.addEventListener("click", () => {
         parent.postMessage( { pluginMessage: {type: "ai-generate-prototype" }, }, "*" );
+      });
+
+      //转换成Html代码
+      convertToHtmlButton.addEventListener("click", () => {
+        parent.postMessage( { pluginMessage: {type: "convert-to-html" }, }, "*" );
       });
 
       //test method

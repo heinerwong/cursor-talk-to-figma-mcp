@@ -62,6 +62,9 @@ figma.ui.onmessage = async (msg) => {
     case "ai-generate-prototype":
       aiGeneratePrototype(msg);
       break;
+    case "convert-to-html":
+      convertToHtml(msg);
+      break;
 
     case "update-settings":
       updateSettings(msg);
@@ -1239,6 +1242,319 @@ async function getLibraries() {
   }
 }
 
+//转换成Html代码
+async function convertToHtml(params) {
+  console.log("convertToHtml: 开始转换为HTML", params);
+
+  try {
+    // 获取当前选中的节点
+    const selection = figma.currentPage.selection;
+    if (selection.length === 0) {
+      figma.notify("请先选择要转换的设计稿元素");
+      return;
+    }
+
+    const selectedNode = selection[0];
+    console.log("选中的节点:", selectedNode);
+
+    // 生成HTML和CSS
+    const { html, css } = await generateHtmlAndCss(selectedNode);
+
+    // 生成完整的HTML文档
+    const fullHtml = generateFullHtmlDocument(html, css);
+
+    // 通过postMessage发送结果到UI
+    figma.ui.postMessage({
+      type: "html-generated",
+      data: {
+        html: fullHtml,
+        css: css,
+        nodeName: selectedNode.name
+      }
+    });
+
+    figma.notify("HTML代码生成成功！");
+
+  } catch (error) {
+    console.error("convertToHtml 错误:", error);
+    figma.notify("生成HTML时出错: " + error.message);
+  }
+}
+
+// 生成HTML和CSS的核心函数
+async function generateHtmlAndCss(node) {
+  const cssRules = [];
+  const globalVariables = new Set();
+
+  // 递归生成HTML结构
+  const html = generateHtmlElement(node, cssRules, globalVariables);
+
+  // 生成CSS样式
+  const css = generateCssStyles(cssRules, globalVariables);
+
+  return { html, css };
+}
+
+// 生成HTML元素
+function generateHtmlElement(node, cssRules, globalVariables, depth = 0) {
+  const className = generateClassName(node.name);
+  const indent = '  '.repeat(depth + 1);
+
+  // 生成该节点的CSS规则
+  const styles = extractNodeStyles(node, globalVariables);
+  if (Object.keys(styles).length > 0) {
+    cssRules.push({
+      selector: `.screen .${className}`,
+      styles: styles
+    });
+  }
+
+  // 根据节点类型生成不同的HTML元素
+  switch (node.type) {
+    case 'TEXT':
+      return `${indent}<span class="${className}">${escapeHtml(node.characters || '')}</span>`;
+
+    case 'FRAME':
+    case 'GROUP':
+      let childrenHtml = '';
+      if (node.children && node.children.length > 0) {
+        childrenHtml = node.children
+          .map(child => generateHtmlElement(child, cssRules, globalVariables, depth + 1))
+          .join('\n');
+      }
+
+      if (childrenHtml) {
+        return `${indent}<div class="${className}">
+${childrenHtml}
+${indent}</div>`;
+      } else {
+        return `${indent}<div class="${className}"></div>`;
+      }
+
+    case 'RECTANGLE':
+    case 'ELLIPSE':
+      return `${indent}<div class="${className}"></div>`;
+
+    case 'IMAGE':
+      return `${indent}<img class="${className}" src="" alt="${escapeHtml(node.name)}" />`;
+
+    default:
+      return `${indent}<div class="${className}"></div>`;
+  }
+}
+
+// 提取节点样式
+function extractNodeStyles(node, globalVariables) {
+  const styles = {};
+
+  // 位置和尺寸
+  if (node.width !== undefined) styles.width = `${Math.round(node.width)}px`;
+  if (node.height !== undefined) styles.height = `${Math.round(node.height)}px`;
+
+  // 绝对定位（相对于父元素）
+  if (node.x !== undefined && node.y !== undefined) {
+    styles.position = 'absolute';
+    styles.left = `${Math.round(node.x)}px`;
+    styles.top = `${Math.round(node.y)}px`;
+  }
+
+  // 背景色
+  if (node.fills && node.fills.length > 0) {
+    const fill = node.fills[0];
+    if (fill.type === 'SOLID' && fill.color) {
+      const color = rgbaToHex(fill.color, fill.opacity);
+      styles['background-color'] = color;
+      globalVariables.add(`--color-${generateColorVariableName(color)}: ${color}`);
+    }
+  }
+
+  // 边框
+  if (node.strokes && node.strokes.length > 0) {
+    const stroke = node.strokes[0];
+    if (stroke.type === 'SOLID' && stroke.color) {
+      const color = rgbaToHex(stroke.color, stroke.opacity);
+      const width = node.strokeWeight || 1;
+      styles.border = `${width}px solid ${color}`;
+    }
+  }
+
+  // 圆角
+  if (node.cornerRadius !== undefined && node.cornerRadius > 0) {
+    styles['border-radius'] = `${node.cornerRadius}px`;
+  }
+
+  // 文本样式
+  if (node.type === 'TEXT' && node.style) {
+    const textStyle = node.style;
+
+    if (textStyle.fontFamily) {
+      styles['font-family'] = `"${textStyle.fontFamily}", sans-serif`;
+    }
+
+    if (textStyle.fontSize) {
+      styles['font-size'] = `${textStyle.fontSize}px`;
+    }
+
+    if (textStyle.fontWeight) {
+      styles['font-weight'] = textStyle.fontWeight;
+    }
+
+    if (textStyle.textAlignHorizontal) {
+      styles['text-align'] = textStyle.textAlignHorizontal.toLowerCase();
+    }
+
+    if (textStyle.letterSpacing) {
+      styles['letter-spacing'] = `${textStyle.letterSpacing}px`;
+    }
+
+    if (textStyle.lineHeightPx) {
+      styles['line-height'] = `${textStyle.lineHeightPx}px`;
+    }
+
+    // 文本颜色
+    if (node.fills && node.fills.length > 0) {
+      const fill = node.fills[0];
+      if (fill.type === 'SOLID' && fill.color) {
+        const color = rgbaToHex(fill.color, fill.opacity);
+        styles.color = color;
+      }
+    }
+  }
+
+  // Auto Layout 属性
+  if (node.layoutMode && node.layoutMode !== 'NONE') {
+    styles.display = 'flex';
+    styles['flex-direction'] = node.layoutMode === 'HORIZONTAL' ? 'row' : 'column';
+
+    if (node.itemSpacing) {
+      styles.gap = `${node.itemSpacing}px`;
+    }
+
+    if (node.paddingLeft || node.paddingRight || node.paddingTop || node.paddingBottom) {
+      const padding = [
+        node.paddingTop || 0,
+        node.paddingRight || 0,
+        node.paddingBottom || 0,
+        node.paddingLeft || 0
+      ];
+      styles.padding = padding.map(p => `${p}px`).join(' ');
+    }
+
+    if (node.primaryAxisAlignItems) {
+      const alignMap = {
+        'MIN': 'flex-start',
+        'CENTER': 'center',
+        'MAX': 'flex-end',
+        'SPACE_BETWEEN': 'space-between'
+      };
+      styles['justify-content'] = alignMap[node.primaryAxisAlignItems] || 'flex-start';
+    }
+
+    if (node.counterAxisAlignItems) {
+      const alignMap = {
+        'MIN': 'flex-start',
+        'CENTER': 'center',
+        'MAX': 'flex-end'
+      };
+      styles['align-items'] = alignMap[node.counterAxisAlignItems] || 'flex-start';
+    }
+  }
+
+  return styles;
+}
+
+// 生成CSS样式字符串
+function generateCssStyles(cssRules, globalVariables) {
+  let css = '';
+
+  // 全局重置样式
+  css += `/* CSS Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* 设计变量 */
+:root {
+${Array.from(globalVariables).map(v => `  ${v};`).join('\n')}
+}
+
+/* 屏幕容器 */
+.screen {
+  position: relative;
+  margin: 0 auto;
+  background: #ffffff;
+}
+
+`;
+
+  // 生成组件样式
+  cssRules.forEach(rule => {
+    css += `${rule.selector} {\n`;
+    Object.entries(rule.styles).forEach(([property, value]) => {
+      css += `  ${property}: ${value};\n`;
+    });
+    css += `}\n\n`;
+  });
+
+  return css;
+}
+
+// 生成完整的HTML文档
+function generateFullHtmlDocument(bodyHtml, css) {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Figma设计稿转换</title>
+  <style>
+${css}
+  </style>
+</head>
+<body>
+  <div class="screen">
+${bodyHtml}
+  </div>
+</body>
+</html>`;
+}
+
+// 工具函数
+function generateClassName(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-') || 'element';
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function rgbaToHex(color, opacity = 1) {
+  const r = Math.round(color.r * 255);
+  const g = Math.round(color.g * 255);
+  const b = Math.round(color.b * 255);
+
+  if (opacity < 1) {
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+function generateColorVariableName(color) {
+  return color.replace('#', '').toLowerCase();
+}
 //ai生成原型测试
 async function aiGeneratePrototype(params) {
   console.log("aiGeneratePrototype: 开始生成iPhone16登录页原型", params);
