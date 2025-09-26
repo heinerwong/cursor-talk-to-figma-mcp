@@ -1241,7 +1241,386 @@ async function getLibraries() {
 
 //ai生成原型测试
 async function aiGeneratePrototype(params) {
-  console.log("aiGeneratePrototype:00000000000000", params);
+  console.log("aiGeneratePrototype: 开始生成iPhone16登录页原型", params);
+
+  try {
+    // iPhone 16 尺寸: 393x852 像素
+    const IPHONE_16_WIDTH = 393;
+    const IPHONE_16_HEIGHT = 852;
+
+    // 创建主容器框架
+    const mainFrame = figma.createFrame();
+    mainFrame.name = "iPhone 16 登录页";
+    mainFrame.resize(IPHONE_16_WIDTH, IPHONE_16_HEIGHT);
+    mainFrame.x = figma.viewport.center.x - IPHONE_16_WIDTH / 2;
+    mainFrame.y = figma.viewport.center.y - IPHONE_16_HEIGHT / 2;
+
+    // 设置背景色为白色
+    mainFrame.fills = [{
+      type: "SOLID",
+      color: { r: 1, g: 1, b: 1 }
+    }];
+
+    // 添加到当前页面
+    figma.currentPage.appendChild(mainFrame);
+
+    // 创建顶部状态栏区域
+    const statusBar = figma.createFrame();
+    statusBar.name = "状态栏";
+    statusBar.resize(IPHONE_16_WIDTH, 54);
+    statusBar.x = 0;
+    statusBar.y = 0;
+    statusBar.fills = [{
+      type: "SOLID",
+      color: { r: 0.98, g: 0.98, b: 0.98 }
+    }];
+    mainFrame.appendChild(statusBar);
+
+    // 创建应用标题
+    const title = figma.createText();
+    title.name = "应用标题";
+
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Bold" });
+      title.fontName = { family: "Inter", style: "Bold" };
+      title.fontSize = 28;
+    } catch (error) {
+      console.error("字体加载失败", error);
+    }
+
+    setCharacters(title, "手机号登录/注册");
+    title.fills = [{
+      type: "SOLID",
+      color: { r: 0.1, g: 0.1, b: 0.1 }
+    }];
+
+    // 设置文本居中对齐
+    title.textAlignHorizontal = "CENTER";
+    title.resize(IPHONE_16_WIDTH, title.height);
+    title.x = 0;
+    title.y = 120;
+
+    mainFrame.appendChild(title);
+
+    // 创建副标题
+    const subtitle = figma.createText();
+    subtitle.name = "副标题";
+    subtitle.x = (IPHONE_16_WIDTH - 180) / 2;
+    subtitle.y = 160;
+
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+      subtitle.fontName = { family: "Inter", style: "Regular" };
+      subtitle.fontSize = 16;
+    } catch (error) {
+      console.error("字体加载失败", error);
+    }
+
+    setCharacters(subtitle, "请输入您的账号信息");
+    subtitle.fills = [{
+      type: "SOLID",
+      color: { r: 0.5, g: 0.5, b: 0.5 }
+    }];
+    mainFrame.appendChild(subtitle);
+
+    // 创建用户名输入框
+    const usernameContainer = figma.createFrame();
+    usernameContainer.name = "用户名输入框";
+    usernameContainer.resize(IPHONE_16_WIDTH - 60, 52);
+    usernameContainer.x = 30;
+    usernameContainer.y = 240;
+    usernameContainer.fills = [{
+      type: "SOLID",
+      color: { r: 0.97, g: 0.97, b: 0.97 }
+    }];
+    usernameContainer.cornerRadius = 12;
+    usernameContainer.strokes = [{
+      type: "SOLID",
+      color: { r: 0.9, g: 0.9, b: 0.9 }
+    }];
+    usernameContainer.strokeWeight = 1;
+    mainFrame.appendChild(usernameContainer);
+
+    // 用户名输入框占位符文本
+    const usernameLabel = figma.createText();
+    usernameLabel.name = "用户名占位符";
+    usernameLabel.x = 16;
+    usernameLabel.y = 16;
+
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+      usernameLabel.fontName = { family: "Inter", style: "Regular" };
+      usernameLabel.fontSize = 16;
+    } catch (error) {
+      console.error("字体加载失败", error);
+    }
+
+    setCharacters(usernameLabel, "手机号或用户名");
+    usernameLabel.fills = [{
+      type: "SOLID",
+      color: { r: 0.6, g: 0.6, b: 0.6 }
+    }];
+    usernameContainer.appendChild(usernameLabel);
+
+    // 创建密码输入框
+    const passwordContainer = figma.createFrame();
+    passwordContainer.name = "密码输入框";
+    passwordContainer.resize(IPHONE_16_WIDTH - 60, 52);
+    passwordContainer.x = 30;
+    passwordContainer.y = 310;
+    passwordContainer.fills = [{
+      type: "SOLID",
+      color: { r: 0.97, g: 0.97, b: 0.97 }
+    }];
+    passwordContainer.cornerRadius = 12;
+    passwordContainer.strokes = [{
+      type: "SOLID",
+      color: { r: 0.9, g: 0.9, b: 0.9 }
+    }];
+    passwordContainer.strokeWeight = 1;
+    mainFrame.appendChild(passwordContainer);
+
+    // 密码输入框占位符文本
+    const passwordLabel = figma.createText();
+    passwordLabel.name = "密码占位符";
+    passwordLabel.x = 16;
+    passwordLabel.y = 16;
+
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+      passwordLabel.fontName = { family: "Inter", style: "Regular" };
+      passwordLabel.fontSize = 16;
+    } catch (error) {
+      console.error("字体加载失败", error);
+    }
+
+    setCharacters(passwordLabel, "密码");
+    passwordLabel.fills = [{
+      type: "SOLID",
+      color: { r: 0.6, g: 0.6, b: 0.6 }
+    }];
+    passwordContainer.appendChild(passwordLabel);
+
+    // 创建忘记密码链接
+    const forgotPassword = figma.createText();
+    forgotPassword.name = "忘记密码链接";
+    forgotPassword.x = IPHONE_16_WIDTH - 110;
+    forgotPassword.y = 380;
+
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+      forgotPassword.fontName = { family: "Inter", style: "Regular" };
+      forgotPassword.fontSize = 14;
+    } catch (error) {
+      console.error("字体加载失败", error);
+    }
+
+    setCharacters(forgotPassword, "忘记密码？");
+    forgotPassword.fills = [{
+      type: "SOLID",
+      color: { r: 0.2, g: 0.5, b: 1 }
+    }];
+    mainFrame.appendChild(forgotPassword);
+
+    // 创建登录按钮
+    const loginButton = figma.createFrame();
+    loginButton.name = "登录按钮";
+    loginButton.resize(IPHONE_16_WIDTH - 60, 52);
+    loginButton.x = 30;
+    loginButton.y = 440;
+    loginButton.fills = [{
+      type: "SOLID",
+      color: { r: 0.2, g: 0.5, b: 1 }
+    }];
+    loginButton.cornerRadius = 12;
+    mainFrame.appendChild(loginButton);
+
+    // 登录按钮文本
+    const loginButtonText = figma.createText();
+    loginButtonText.name = "登录按钮文本";
+    loginButtonText.x = (loginButton.width - 40) / 2;
+    loginButtonText.y = 16;
+
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Medium" });
+      loginButtonText.fontName = { family: "Inter", style: "Medium" };
+      loginButtonText.fontSize = 16;
+    } catch (error) {
+      console.error("字体加载失败", error);
+    }
+
+    setCharacters(loginButtonText, "登录");
+    loginButtonText.fills = [{
+      type: "SOLID",
+      color: { r: 1, g: 1, b: 1 }
+    }];
+    loginButton.appendChild(loginButtonText);
+
+    // 创建分隔线和"或"文本
+    const orContainer = figma.createFrame();
+    orContainer.name = "分隔容器";
+    orContainer.resize(IPHONE_16_WIDTH - 60, 40);
+    orContainer.x = 30;
+    orContainer.y = 520;
+    orContainer.fills = [];
+    mainFrame.appendChild(orContainer);
+
+    // 左侧分隔线
+    const leftDivider = figma.createRectangle();
+    leftDivider.name = "左分隔线";
+    leftDivider.resize((IPHONE_16_WIDTH - 100) / 2, 1);
+    leftDivider.x = 0;
+    leftDivider.y = 20;
+    leftDivider.fills = [{
+      type: "SOLID",
+      color: { r: 0.9, g: 0.9, b: 0.9 }
+    }];
+    orContainer.appendChild(leftDivider);
+
+    // 右侧分隔线
+    const rightDivider = figma.createRectangle();
+    rightDivider.name = "右分隔线";
+    rightDivider.resize((IPHONE_16_WIDTH - 100) / 2, 1);
+    rightDivider.x = (IPHONE_16_WIDTH - 80) / 2;
+    rightDivider.y = 20;
+    rightDivider.fills = [{
+      type: "SOLID",
+      color: { r: 0.9, g: 0.9, b: 0.9 }
+    }];
+    orContainer.appendChild(rightDivider);
+
+    // "或"文本
+    const orText = figma.createText();
+    orText.name = "或文本";
+    orText.x = (orContainer.width - 20) / 2;
+    orText.y = 12;
+
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+      orText.fontName = { family: "Inter", style: "Regular" };
+      orText.fontSize = 14;
+    } catch (error) {
+      console.error("字体加载失败", error);
+    }
+
+    setCharacters(orText, "或");
+    orText.fills = [{
+      type: "SOLID",
+      color: { r: 0.6, g: 0.6, b: 0.6 }
+    }];
+    orContainer.appendChild(orText);
+
+    // 创建社交登录按钮
+    const socialButton = figma.createFrame();
+    socialButton.name = "社交登录按钮";
+    socialButton.resize(IPHONE_16_WIDTH - 60, 52);
+    socialButton.x = 30;
+    socialButton.y = 580;
+    socialButton.fills = [{
+      type: "SOLID",
+      color: { r: 1, g: 1, b: 1 }
+    }];
+    socialButton.cornerRadius = 12;
+    socialButton.strokes = [{
+      type: "SOLID",
+      color: { r: 0.9, g: 0.9, b: 0.9 }
+    }];
+    socialButton.strokeWeight = 1;
+    mainFrame.appendChild(socialButton);
+
+    // 社交登录按钮文本
+    const socialButtonText = figma.createText();
+    socialButtonText.name = "社交登录按钮文本";
+    socialButtonText.x = (socialButton.width - 120) / 2;
+    socialButtonText.y = 16;
+
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Medium" });
+      socialButtonText.fontName = { family: "Inter", style: "Medium" };
+      socialButtonText.fontSize = 16;
+    } catch (error) {
+      console.error("字体加载失败", error);
+    }
+
+    setCharacters(socialButtonText, "使用微信登录");
+    socialButtonText.fills = [{
+      type: "SOLID",
+      color: { r: 0.1, g: 0.1, b: 0.1 }
+    }];
+    socialButton.appendChild(socialButtonText);
+
+    // 创建注册链接
+    const registerContainer = figma.createFrame();
+    registerContainer.name = "注册链接容器";
+    registerContainer.resize(IPHONE_16_WIDTH, 40);
+    registerContainer.x = 0;
+    registerContainer.y = 760;
+    registerContainer.fills = [];
+    mainFrame.appendChild(registerContainer);
+
+    const registerText = figma.createText();
+    registerText.name = "注册文本";
+    registerText.x = (IPHONE_16_WIDTH - 160) / 2;
+    registerText.y = 12;
+
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+      registerText.fontName = { family: "Inter", style: "Regular" };
+      registerText.fontSize = 14;
+    } catch (error) {
+      console.error("字体加载失败", error);
+    }
+
+    setCharacters(registerText, "还没有账号？ ");
+    registerText.fills = [{
+      type: "SOLID",
+      color: { r: 0.6, g: 0.6, b: 0.6 }
+    }];
+    registerContainer.appendChild(registerText);
+
+    const registerLink = figma.createText();
+    registerLink.name = "注册链接";
+    registerLink.x = (IPHONE_16_WIDTH - 160) / 2 + 90;
+    registerLink.y = 12;
+
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+      registerLink.fontName = { family: "Inter", style: "Regular" };
+      registerLink.fontSize = 14;
+    } catch (error) {
+      console.error("字体加载失败", error);
+    }
+
+    setCharacters(registerLink, "立即注册");
+    registerLink.fills = [{
+      type: "SOLID",
+      color: { r: 0.2, g: 0.5, b: 1 }
+    }];
+    registerContainer.appendChild(registerLink);
+
+    // 选中主框架以便用户查看
+    figma.currentPage.selection = [mainFrame];
+    figma.viewport.scrollAndZoomIntoView([mainFrame]);
+
+    console.log("iPhone 16 登录页原型生成完成");
+
+    return {
+      success: true,
+      message: "iPhone 16 登录页原型已成功生成",
+      frameId: mainFrame.id,
+      dimensions: {
+        width: IPHONE_16_WIDTH,
+        height: IPHONE_16_HEIGHT
+      }
+    };
+
+  } catch (error) {
+    console.error("生成原型时出错:", error);
+    return {
+      success: false,
+      message: `生成原型失败: ${error.message}`
+    };
+  }
 }
 
 //测试-插入组件集成功(组件集是同系列组件的集合)
