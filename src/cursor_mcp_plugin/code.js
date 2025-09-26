@@ -1634,21 +1634,24 @@ async function testButtonEvent(params) {
   {
     //v-buttong
      const componentSet = await figma.importComponentSetByKeyAsync("6529ec229f0d87080dc1070b4330e511be8b4575");
-     console.log("添加的组件集00000000000000:", ( componentSet )); 
+     console.log("获取的组件集00000000000000:", ( componentSet )); 
 
     //打印集合的组件
     //  for (const component of componentSet.children) {
     //   console.log(`name:${component.name} key:${component.key}`);
     //  } 
 
-     console.log("集合的组件defaultVariant:", componentSet.defaultVariant);
-     var componentSetCopy = componentSet.clone()
-
      const page3 = await figma.getNodeByIdAsync("57:356");
+     console.log("page3:", page3);
      if(!page3)
      {
         throw new Error("Page3 not found");
      }
+
+     console.log("集合的组件defaultVariant:", componentSet.defaultVariant);
+     var componentSetCopy = componentSet.clone()
+
+  
      //这样就能插入一个组件集到page3中
      const instance = componentSetCopy.defaultVariant;
     //  instance.x = page3.x - 10
