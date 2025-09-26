@@ -59,6 +59,9 @@ figma.ui.onmessage = async (msg) => {
     case "test-method":
       testButtonEvent(msg);
       break;
+    case "ai-generate-prototype":
+      aiGeneratePrototype(msg);
+      break;
     case "update-settings":
       updateSettings(msg);
       break;
