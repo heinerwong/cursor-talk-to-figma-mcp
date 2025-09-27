@@ -1287,7 +1287,7 @@ async function generateHtmlAndCss(node) {
   const globalVariables = new Set();
 
   // 递归生成HTML结构
-  const html = generateHtmlElement(node, cssRules, globalVariables);
+  const html = generateHtmlElement(node, cssRules, globalVariables, 0, null, true);
 
   // 生成CSS样式
   const css = generateCssStyles(cssRules, globalVariables);
@@ -1296,15 +1296,15 @@ async function generateHtmlAndCss(node) {
 }
 
 // 生成HTML元素
-function generateHtmlElement(node, cssRules, globalVariables, depth = 0) {
-  const className = generateClassName(node.name);
+function generateHtmlElement(node, cssRules, globalVariables, depth = 0, parentBounds = null, isRoot = false) {
+  const elementId = generateElementId(node.id);
   const indent = '  '.repeat(depth + 1);
 
   // 生成该节点的CSS规则
-  const styles = extractNodeStyles(node, globalVariables);
+  const styles = extractNodeStyles(node, globalVariables, parentBounds, isRoot);
   if (Object.keys(styles).length > 0) {
     cssRules.push({
-      selector: `.screen .${className}`,
+      selector: `.screen #${elementId}`,
       styles: styles
     });
   }
@@ -1312,39 +1312,41 @@ function generateHtmlElement(node, cssRules, globalVariables, depth = 0) {
   // 根据节点类型生成不同的HTML元素
   switch (node.type) {
     case 'TEXT':
-      return `${indent}<span class="${className}">${escapeHtml(node.characters || '')}</span>`;
+      return `${indent}<span id="${elementId}">${escapeHtml(node.characters || '')}</span>`;
 
     case 'FRAME':
     case 'GROUP':
       let childrenHtml = '';
       if (node.children && node.children.length > 0) {
+        // 为子元素传递当前节点的边界框作为父边界框
+        const currentBounds = node.absoluteBoundingBox || { x: 0, y: 0 };
         childrenHtml = node.children
-          .map(child => generateHtmlElement(child, cssRules, globalVariables, depth + 1))
+          .map(child => generateHtmlElement(child, cssRules, globalVariables, depth + 1, currentBounds))
           .join('\n');
       }
 
       if (childrenHtml) {
-        return `${indent}<div class="${className}">
+        return `${indent}<div id="${elementId}">
 ${childrenHtml}
 ${indent}</div>`;
       } else {
-        return `${indent}<div class="${className}"></div>`;
+        return `${indent}<div id="${elementId}"></div>`;
       }
 
     case 'RECTANGLE':
     case 'ELLIPSE':
-      return `${indent}<div class="${className}"></div>`;
+      return `${indent}<div id="${elementId}"></div>`;
 
     case 'IMAGE':
-      return `${indent}<img class="${className}" src="" alt="${escapeHtml(node.name)}" />`;
+      return `${indent}<img id="${elementId}" src="" alt="${escapeHtml(node.name)}" />`;
 
     default:
-      return `${indent}<div class="${className}"></div>`;
+      return `${indent}<div id="${elementId}"></div>`;
   }
 }
 
 // 提取节点样式
-function extractNodeStyles(node, globalVariables) {
+function extractNodeStyles(node, globalVariables, parentBounds = null) {
   const styles = {};
 
   // 位置和尺寸
@@ -1352,7 +1354,11 @@ function extractNodeStyles(node, globalVariables) {
   if (node.height !== undefined) styles.height = `${Math.round(node.height)}px`;
 
   // 绝对定位（相对于父元素）
-  if (node.x !== undefined && node.y !== undefined) {
+  if (node.absoluteBoundingBox && parentBounds) {
+    styles.position = 'absolute';
+    styles.left = `${Math.round(node.absoluteBoundingBox.x - parentBounds.x)}px`;
+    styles.top = `${Math.round(node.absoluteBoundingBox.y - parentBounds.y)}px`;
+  } else if (node.x !== undefined && node.y !== undefined) {
     styles.position = 'absolute';
     styles.left = `${Math.round(node.x)}px`;
     styles.top = `${Math.round(node.y)}px`;
@@ -1489,6 +1495,21 @@ ${Array.from(globalVariables).map(v => `  ${v};`).join('\n')}
   position: relative;
   margin: 0 auto;
   background: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* 主设计容器 */
+.screen > div:first-child {
+  position: relative !important;
+  margin: 0 auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 `;
@@ -1534,10 +1555,19 @@ function generateClassName(name) {
     .replace(/-+/g, '-') || 'element';
 }
 
+function generateElementId(nodeId) {
+  // 将 Figma 节点 ID (如 "6:41") 转换为有效的 HTML ID
+  return 'figma-' + nodeId.replace(/[^a-zA-Z0-9]/g, '-');
+}
+
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function rgbaToHex(color, opacity = 1) {

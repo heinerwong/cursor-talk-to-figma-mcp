@@ -237,6 +237,17 @@
           </div>
         </div>
 
+        <div class="section" id="html-output-section" style="display: none;">
+          <h3>生成的HTML代码</h3>
+          <div class="button-group">
+            <button id="btn-copy-html" class="secondary">复制HTML</button>
+            <button id="btn-download-html" class="secondary">下载HTML文件</button>
+          </div>
+          <div class="code-output">
+            <textarea id="html-output" readonly rows="20" style="width: 100%; font-family: monospace; font-size: 12px; border: 1px solid #ccc; padding: 10px; resize: vertical;"></textarea>
+          </div>
+        </div>
+
         <div class="section">
           <label for="port">你需要生成什么样的原型：</label>
           <div style="display: block;">
@@ -606,6 +617,14 @@
         parent.postMessage( { pluginMessage: {type: "convert-to-html" }, }, "*" );
       });
 
+      // 复制HTML按钮
+      const copyHtmlButton = document.getElementById("btn-copy-html");
+      copyHtmlButton.addEventListener("click", copyHtmlToClipboard);
+
+      // 下载HTML按钮
+      const downloadHtmlButton = document.getElementById("btn-download-html");
+      downloadHtmlButton.addEventListener("click", downloadHtmlFile);
+
       //test method
       async function testMethod() {
         try {
@@ -687,6 +706,62 @@
         progressPercentage.textContent = "0%";
       }
 
+      // 显示生成的HTML代码
+      function displayGeneratedHtml(data) {
+        const htmlOutputSection = document.getElementById("html-output-section");
+        const htmlOutput = document.getElementById("html-output");
+
+        // 显示HTML输出区域
+        htmlOutputSection.style.display = "block";
+
+        // 设置生成的HTML代码
+        htmlOutput.value = data.html;
+
+        // 滚动到HTML输出区域
+        htmlOutputSection.scrollIntoView({ behavior: 'smooth' });
+
+        // 存储数据供复制和下载使用
+        window.generatedHtmlData = data;
+      }
+
+      // 复制HTML到剪贴板
+      function copyHtmlToClipboard() {
+        const htmlOutput = document.getElementById("html-output");
+        htmlOutput.select();
+        document.execCommand('copy');
+
+        // 显示复制成功的提示
+        const copyBtn = document.getElementById("btn-copy-html");
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = "已复制!";
+        copyBtn.style.backgroundColor = "#28a745";
+
+        setTimeout(() => {
+          copyBtn.textContent = originalText;
+          copyBtn.style.backgroundColor = "";
+        }, 2000);
+      }
+
+      // 下载HTML文件
+      function downloadHtmlFile() {
+        if (!window.generatedHtmlData) {
+          alert("没有可下载的HTML代码");
+          return;
+        }
+
+        const data = window.generatedHtmlData;
+        const blob = new Blob([data.html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${data.nodeName || 'figma-design'}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
       // Listen for messages from the plugin code
       window.onmessage = (event) => {
         const message = event.data.pluginMessage;
@@ -717,6 +792,10 @@
             updateProgressUI(message);
             // Forward progress update to server
             sendProgressUpdateToServer(message);
+            break;
+          case "html-generated":
+            // 显示生成的HTML代码
+            displayGeneratedHtml(message.data);
             break;
         }
       };
