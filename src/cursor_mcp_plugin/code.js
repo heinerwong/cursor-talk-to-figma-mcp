@@ -1263,7 +1263,7 @@ async function convertToHtml(params) {
     // 生成完整的HTML文档
     const fullHtml = generateFullHtmlDocument(html, css);
 
-    // 通过postMessage发送结果到UI
+    // code通过postMessage发送结果到UI
     figma.ui.postMessage({
       type: "html-generated",
       data: {
@@ -1321,14 +1321,12 @@ function generateHtmlElement(node, cssRules, globalVariables, depth = 0, parentB
         // 为子元素传递当前节点的边界框作为父边界框
         const currentBounds = node.absoluteBoundingBox || { x: 0, y: 0 };
         childrenHtml = node.children
-          .map(child => generateHtmlElement(child, cssRules, globalVariables, depth + 1, currentBounds))
+          .map(child => generateHtmlElement(child, cssRules, globalVariables, depth + 1, currentBounds, false))
           .join('\n');
       }
 
       if (childrenHtml) {
-        return `${indent}<div id="${elementId}">
-${childrenHtml}
-${indent}</div>`;
+        return `${indent}<div id="${elementId}">${childrenHtml}${indent}</div>`;
       } else {
         return `${indent}<div id="${elementId}"></div>`;
       }
@@ -1346,19 +1344,24 @@ ${indent}</div>`;
 }
 
 // 提取节点样式
-function extractNodeStyles(node, globalVariables, parentBounds = null) {
+function extractNodeStyles(node, globalVariables, parentBounds = null, isRoot = false) {
   const styles = {};
 
   // 位置和尺寸
   if (node.width !== undefined) styles.width = `${Math.round(node.width)}px`;
   if (node.height !== undefined) styles.height = `${Math.round(node.height)}px`;
 
-  // 绝对定位（相对于父元素）
-  if (node.absoluteBoundingBox && parentBounds) {
+  // 根元素不使用绝对定位，子元素使用绝对定位
+  if (isRoot) {
+    // 根元素使用相对定位，作为子元素的定位参考
+    styles.position = 'relative';
+  } else if (node.absoluteBoundingBox && parentBounds) {
+    // 子元素使用绝对定位，相对于父元素
     styles.position = 'absolute';
     styles.left = `${Math.round(node.absoluteBoundingBox.x - parentBounds.x)}px`;
     styles.top = `${Math.round(node.absoluteBoundingBox.y - parentBounds.y)}px`;
-  } else if (node.x !== undefined && node.y !== undefined) {
+  } else if (node.x !== undefined && node.y !== undefined && !isRoot) {
+    // 备用定位方案
     styles.position = 'absolute';
     styles.left = `${Math.round(node.x)}px`;
     styles.top = `${Math.round(node.y)}px`;
@@ -1406,7 +1409,13 @@ function extractNodeStyles(node, globalVariables, parentBounds = null) {
     }
 
     if (textStyle.textAlignHorizontal) {
-      styles['text-align'] = textStyle.textAlignHorizontal.toLowerCase();
+      const alignMap = {
+        'LEFT': 'left',
+        'CENTER': 'center',
+        'RIGHT': 'right',
+        'JUSTIFIED': 'justify'
+      };
+      styles['text-align'] = alignMap[textStyle.textAlignHorizontal] || 'left';
     }
 
     if (textStyle.letterSpacing) {
@@ -1416,6 +1425,12 @@ function extractNodeStyles(node, globalVariables, parentBounds = null) {
     if (textStyle.lineHeightPx) {
       styles['line-height'] = `${textStyle.lineHeightPx}px`;
     }
+
+    // 文本垂直对齐
+    styles['display'] = 'flex';
+    styles['align-items'] = 'center';
+    styles['justify-content'] = styles['text-align'] === 'center' ? 'center' :
+                                styles['text-align'] === 'right' ? 'flex-end' : 'flex-start';
 
     // 文本颜色
     if (node.fills && node.fills.length > 0) {
@@ -1427,7 +1442,7 @@ function extractNodeStyles(node, globalVariables, parentBounds = null) {
     }
   }
 
-  // Auto Layout 属性
+  // Auto Layout 属性 (优先级高于文本样式)
   if (node.layoutMode && node.layoutMode !== 'NONE') {
     styles.display = 'flex';
     styles['flex-direction'] = node.layoutMode === 'HORIZONTAL' ? 'row' : 'column';
@@ -1481,8 +1496,17 @@ function generateCssStyles(cssRules, globalVariables) {
   box-sizing: border-box;
 }
 
-body {
+html, body {
+  width: 100%;
+  height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f5f5f5;
+}
+
+/* 文本元素默认样式 */
+span {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* 设计变量 */
@@ -1575,10 +1599,12 @@ function rgbaToHex(color, opacity = 1) {
   const g = Math.round(color.g * 255);
   const b = Math.round(color.b * 255);
 
-  if (opacity < 1) {
+  // 如果有透明度或者透明度小于1，使用rgba格式
+  if (opacity !== undefined && opacity < 1) {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   }
 
+  // 否则使用hex格式
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
