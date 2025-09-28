@@ -1372,8 +1372,10 @@ function extractNodeStyles(node, globalVariables, parentBounds = null, isRoot = 
     const fill = node.fills[0];
     if (fill.type === 'SOLID' && fill.color) {
       const color = rgbaToHex(fill.color, fill.opacity);
-      styles['background-color'] = color;
-      globalVariables.add(`--color-${generateColorVariableName(color)}: ${color}`);
+      if (typeof color === 'string') {
+        styles['background-color'] = color;
+        globalVariables.add(`--color-${generateColorVariableName(color)}: ${color}`);
+      }
     }
   }
 
@@ -1383,12 +1385,14 @@ function extractNodeStyles(node, globalVariables, parentBounds = null, isRoot = 
     if (stroke.type === 'SOLID' && stroke.color) {
       const color = rgbaToHex(stroke.color, stroke.opacity);
       const width = node.strokeWeight || 1;
-      styles.border = `${width}px solid ${color}`;
+      if (typeof color === 'string' && typeof width === 'number') {
+        styles.border = `${width}px solid ${color}`;
+      }
     }
   }
 
-  // 圆角
-  if (node.cornerRadius !== undefined && node.cornerRadius > 0) {
+  // node.cornerRadius 有的时候是一个对象：node.cornerRadius.Symbol
+  if (node.cornerRadius !== undefined && typeof node.cornerRadius === 'number' && node.cornerRadius > 0) {
     styles['border-radius'] = `${node.cornerRadius}px`;
   }
 
@@ -1437,7 +1441,9 @@ function extractNodeStyles(node, globalVariables, parentBounds = null, isRoot = 
       const fill = node.fills[0];
       if (fill.type === 'SOLID' && fill.color) {
         const color = rgbaToHex(fill.color, fill.opacity);
-        styles.color = color;
+        if (typeof color === 'string') {
+          styles.color = color;
+        }
       }
     }
   }
@@ -1511,7 +1517,7 @@ span {
 
 /* 设计变量 */
 :root {
-${Array.from(globalVariables).map(v => `  ${v};`).join('\n')}
+${Array.from(globalVariables).filter(v => typeof v === 'string').map(v => `  ${v};`).join('\n')}
 }
 
 /* 屏幕容器 */
@@ -1595,13 +1601,22 @@ function escapeHtml(text) {
 }
 
 function rgbaToHex(color, opacity = 1) {
-  const r = Math.round(color.r * 255);
-  const g = Math.round(color.g * 255);
-  const b = Math.round(color.b * 255);
+  // 防护性检查
+  if (!color || typeof color !== 'object') {
+    return '#000000';
+  }
+
+  // 确保颜色值存在且为数字
+  const r = Math.round((color.r || 0) * 255);
+  const g = Math.round((color.g || 0) * 255);
+  const b = Math.round((color.b || 0) * 255);
+
+  // 确保透明度为数字
+  const alpha = typeof opacity === 'number' ? opacity : 1;
 
   // 如果有透明度或者透明度小于1，使用rgba格式
-  if (opacity !== undefined && opacity < 1) {
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  if (alpha < 1) {
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
   // 否则使用hex格式
@@ -1609,6 +1624,10 @@ function rgbaToHex(color, opacity = 1) {
 }
 
 function generateColorVariableName(color) {
+  // 防护性检查，确保是字符串
+  if (typeof color !== 'string') {
+    return 'default';
+  }
   return color.replace('#', '').toLowerCase();
 }
 //ai生成原型测试
