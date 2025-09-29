@@ -1287,7 +1287,7 @@ async function generateHtmlAndCss(node) {
   const globalVariables = new Set();
 
   // 递归生成HTML结构
-  const html = await generateHtmlElement(node, cssRules, globalVariables, 0, null, true);
+  const html = generateHtmlElement(node, cssRules, globalVariables, 0, null, true);
 
   // 生成CSS样式
   const css = generateCssStyles(cssRules, globalVariables);
@@ -1295,28 +1295,8 @@ async function generateHtmlAndCss(node) {
   return { html, css };
 }
 
-// 导出节点为图片
-async function exportVectorNodeAsImage(node) {
-  try {
-    // 导出节点为PNG格式的Uint8Array
-    const bytes = await node.exportAsync({
-      format: 'PNG',
-      constraint: { type: 'SCALE', value: 2 } // 2倍分辨率确保清晰度
-    });
-
-    // 将Uint8Array转换为base64
-    const base64 = figma.base64Encode(bytes);
-    return `data:image/png;base64,${base64}`;
-  } catch (error) {
-    console.error('导出图片失败:', error);
-    // 如果导出失败，返回一个占位符SVG
-    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xMiA5VjEzTTEyIDE3SDE2TTEyIDdIMTZNOCA5VjEzTTggMTdIMTJNOCA3SDEyIiBzdHJva2U9IiM5OTk5OTkiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
-  }
-}
-
 // 生成HTML元素
-//选择的节点、css规则数组、全局变量集合、当前深度、父节点边界框、是否为根节点
-async function generateHtmlElement(node, cssRules, globalVariables, depth = 0, parentBounds = null, isRoot = false) {
+function generateHtmlElement(node, cssRules, globalVariables, depth = 0, parentBounds = null, isRoot = false) {
   const elementId = generateElementId(node.id);
   const indent = '  '.repeat(depth + 1);
 
@@ -1329,9 +1309,6 @@ async function generateHtmlElement(node, cssRules, globalVariables, depth = 0, p
     });
   }
 
-  // console.log(`node.name111111: ${node.type}->name:${node.name}`);
-
-
   // 根据节点类型生成不同的HTML元素
   switch (node.type) {
     case 'TEXT':
@@ -1343,11 +1320,9 @@ async function generateHtmlElement(node, cssRules, globalVariables, depth = 0, p
       if (node.children && node.children.length > 0) {
         // 为子元素传递当前节点的边界框作为父边界框
         const currentBounds = node.absoluteBoundingBox || { x: 0, y: 0 };
-        const childrenPromises = node.children.map(child =>
-          generateHtmlElement(child, cssRules, globalVariables, depth + 1, currentBounds, false)
-        );
-        const childrenResults = await Promise.all(childrenPromises);
-        childrenHtml = childrenResults.join('\n');
+        childrenHtml = node.children
+          .map(child => generateHtmlElement(child, cssRules, globalVariables, depth + 1, currentBounds, false))
+          .join('\n');
       }
 
       if (childrenHtml) {
@@ -1363,14 +1338,7 @@ async function generateHtmlElement(node, cssRules, globalVariables, depth = 0, p
     case 'IMAGE':
       return `${indent}<img id="${elementId}" src="" alt="${escapeHtml(node.name)}" />`;
 
-     case 'VECTOR':
-      // VECTOR节点需要导出为图片
-      const vectorImageData = await exportVectorNodeAsImage(node);
-      return `${indent}<img id="${elementId}" src="${vectorImageData}" alt="${escapeHtml(node.name)}" />`; 
-
     default:
-      console.log(`Unsupported node type: ${node.type}:${node.name}`);
-      // console.log(node);
       return `${indent}<div id="${elementId}"></div>`;
   }
 }
@@ -1519,15 +1487,6 @@ function extractNodeStyles(node, globalVariables, parentBounds = null, isRoot = 
     }
   }
 
-  // 图片和矢量节点的特殊样式
-  if (node.type === 'VECTOR' || node.type === 'IMAGE') {
-    // 确保图片不会超出容器
-    styles['max-width'] = '100%';
-    styles['height'] = 'auto';
-    // 保持图片清晰度
-    styles['image-rendering'] = 'crisp-edges';
-  }
-
   return styles;
 }
 
@@ -1554,15 +1513,6 @@ html, body {
 span {
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-/* 图片元素默认样式 */
-img {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
 }
 
 /* 设计变量 */
@@ -2166,7 +2116,6 @@ async function exportNodeAsImage(params) {
   const format = "PNG";
 
   if (!nodeId) {
-    console.log(params)
     throw new Error("Missing nodeId parameter");
   }
 
