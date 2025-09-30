@@ -249,6 +249,19 @@
           </div>
         </div>
 
+        <div class="section" id="html-preview-section" style="display: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <h3>HTML预览</h3>
+            <button id="btn-close-preview" class="secondary" style="padding: 4px 12px; font-size: 12px;">关闭预览</button>
+          </div>
+          <div class="preview-container" style="position: relative;">
+            <iframe id="html-preview-frame" style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 6px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></iframe>
+            <div id="preview-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <span style="color: #666;">正在加载预览...</span>
+            </div>
+          </div>
+        </div>
+
         <div class="section">
           <label for="port">你需要生成什么样的原型：</label>
           <div style="display: block;">
@@ -631,6 +644,10 @@
       const downloadHtmlButton = document.getElementById("btn-download-html");
       downloadHtmlButton.addEventListener("click", downloadHtmlFile);
 
+      // 关闭预览按钮
+      const closePreviewButton = document.getElementById("btn-close-preview");
+      closePreviewButton.addEventListener("click", closeHtmlPreview);
+
       //test method
       async function testMethod() {
         try {
@@ -777,34 +794,55 @@
 
         const data = window.generatedHtmlData;
 
-        // 创建blob URL
+        // 显示预览区域
+        const previewSection = document.getElementById("html-preview-section");
+        const previewFrame = document.getElementById("html-preview-frame");
+        const loadingIndicator = document.getElementById("preview-loading");
+
+        previewSection.style.display = "block";
+
+        // 显示加载状态
+        loadingIndicator.style.display = "block";
+
+        // 创建blob URL并加载到iframe
         const blob = new Blob([data.html], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
 
-        // 在新窗口中打开预览
-        const previewWindow = window.open(url, '_blank', 'width=800,height=600,resizable=yes,scrollbars=yes');
+        // 监听iframe加载完成
+        previewFrame.onload = () => {
+          loadingIndicator.style.display = "none";
+        };
 
-        if (!previewWindow) {
-          // 如果弹窗被阻止，提供替代方案
-          const confirmed = confirm("浏览器阻止了弹窗。点击确定在当前标签页中打开预览，或者允许此网站弹窗后重试。");
-          if (confirmed) {
-            window.open(url, '_self');
-          }
-        } else {
-          // 设置窗口标题
-          previewWindow.addEventListener('load', () => {
-            try {
-              previewWindow.document.title = `预览: ${data.nodeName || 'Figma设计稿'}`;
-            } catch (e) {
-              // 跨域限制，忽略错误
-            }
-          });
+        previewFrame.src = url;
 
-          // 5分钟后清理blob URL
-          setTimeout(() => {
-            URL.revokeObjectURL(url);
-          }, 5 * 60 * 1000);
+        // 滚动到预览区域
+        previewSection.scrollIntoView({ behavior: 'smooth' });
+
+        // 存储URL以便后续清理
+        previewFrame.dataset.blobUrl = url;
+
+        // 5分钟后清理blob URL
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 5 * 60 * 1000);
+      }
+
+      // 关闭预览
+      function closeHtmlPreview() {
+        const previewSection = document.getElementById("html-preview-section");
+        const previewFrame = document.getElementById("html-preview-frame");
+
+        // 隐藏预览区域
+        previewSection.style.display = "none";
+
+        // 清理blob URL
+        if (previewFrame.dataset.blobUrl) {
+          URL.revokeObjectURL(previewFrame.dataset.blobUrl);
+          delete previewFrame.dataset.blobUrl;
         }
+
+        // 清空iframe
+        previewFrame.src = "about:blank";
       }
 
       // Listen for messages from the plugin code
