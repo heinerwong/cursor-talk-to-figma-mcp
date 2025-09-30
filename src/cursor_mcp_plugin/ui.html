@@ -240,6 +240,7 @@
         <div class="section" id="html-output-section" style="display: none;">
           <h3>生成的HTML代码</h3>
           <div class="button-group">
+            <button id="btn-preview-html" class="primary">预览HTML</button>
             <button id="btn-copy-html" class="secondary">复制HTML</button>
             <button id="btn-download-html" class="secondary">下载HTML文件</button>
           </div>
@@ -618,6 +619,10 @@
         parent.postMessage( { pluginMessage: {type: "convert-to-html" }, }, "*" );
       });
 
+      // 预览HTML按钮
+      const previewHtmlButton = document.getElementById("btn-preview-html");
+      previewHtmlButton.addEventListener("click", previewHtmlPage);
+
       // 复制HTML按钮
       const copyHtmlButton = document.getElementById("btn-copy-html");
       copyHtmlButton.addEventListener("click", copyHtmlToClipboard);
@@ -761,6 +766,45 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+      }
+
+      // 预览HTML页面
+      function previewHtmlPage() {
+        if (!window.generatedHtmlData) {
+          alert("没有可预览的HTML代码");
+          return;
+        }
+
+        const data = window.generatedHtmlData;
+
+        // 创建blob URL
+        const blob = new Blob([data.html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+
+        // 在新窗口中打开预览
+        const previewWindow = window.open(url, '_blank', 'width=800,height=600,resizable=yes,scrollbars=yes');
+
+        if (!previewWindow) {
+          // 如果弹窗被阻止，提供替代方案
+          const confirmed = confirm("浏览器阻止了弹窗。点击确定在当前标签页中打开预览，或者允许此网站弹窗后重试。");
+          if (confirmed) {
+            window.open(url, '_self');
+          }
+        } else {
+          // 设置窗口标题
+          previewWindow.addEventListener('load', () => {
+            try {
+              previewWindow.document.title = `预览: ${data.nodeName || 'Figma设计稿'}`;
+            } catch (e) {
+              // 跨域限制，忽略错误
+            }
+          });
+
+          // 5分钟后清理blob URL
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+          }, 5 * 60 * 1000);
+        }
       }
 
       // Listen for messages from the plugin code
