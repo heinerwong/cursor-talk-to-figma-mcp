@@ -1305,6 +1305,8 @@ async function exportVectorNodeAsImage(node) {
       format: 'PNG',
       constraint: { type: 'SCALE', value: 2 } // 2倍分辨率确保清晰度
     });
+    // const svg = await node.exportAsync({ format: 'SVG_STRING' })
+    // console.log(svg);
 
     // 将Uint8Array转换为base64
     const base64 = figma.base64Encode(bytes);
@@ -1423,8 +1425,8 @@ function extractNodeStyles(node, globalVariables, parentBounds = null, isRoot = 
       const color = rgbaToHex(fill.color, fill.opacity);
       if (typeof color === 'string') {
         console.log(`fill color:${node.type} ${color}`);
-        // if (node.type !== 'TEXT' && node.type !== 'VECTOR') 
-        if (node.type !== 'TEXT') 
+         if (node.type !== 'TEXT' && node.type !== 'VECTOR') 
+        //if (node.type !== 'TEXT') 
        {
           styles['background-color'] = color; // 文本不要背景色
         }
